@@ -177,8 +177,10 @@ const store = {
 };
 let session = null; // {salt, bits}
 
+// Same rule as normalize() in seal.py: Arabic and Persian digits count as Western ones.
+const norm = pw => pw.normalize('NFC').replace(/[٠-٩]/g, d => d.charCodeAt(0) - 0x660).replace(/[۰-۹]/g, d => d.charCodeAt(0) - 0x6F0).trim();
 async function derive(pw, box){
-  const base = await crypto.subtle.importKey('raw', enc.encode(pw), 'PBKDF2', false, ['deriveBits']);
+  const base = await crypto.subtle.importKey('raw', enc.encode(norm(pw)), 'PBKDF2', false, ['deriveBits']);
   const bits = await crypto.subtle.deriveBits({name:'PBKDF2', hash:'SHA-256', salt:unb(box.salt), iterations:box.iter}, base, 512);
   return {salt: box.salt, iter: box.iter, bits: b64(bits)};
 }
