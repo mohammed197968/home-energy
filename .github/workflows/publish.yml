@@ -13,7 +13,7 @@ permissions:
   id-token: write
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -23,14 +23,18 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+      # The blob is read from the event file, not from env or the command line, so it never appears in the run log.
       - name: Assemble site
-        env:
-          BLOB: ${{ inputs.blob }}
         run: |
           mkdir _site
           cp index.html manifest.webmanifest icon.svg icon-180.png icon-512.png robots.txt .nojekyll _site/
-          printf '%s' "$BLOB" > _site/data.json
-          python3 -c "import json;b=json.load(open('_site/data.json'));assert set(b)=={'v','kdf','iter','salt','iv','ct','mac'}, 'not an encrypted envelope'"
+          python3 - <<'PY'
+          import json, os
+          blob = json.load(open(os.environ['GITHUB_EVENT_PATH']))['inputs']['blob']
+          box = json.loads(blob)
+          assert set(box) == {'v', 'kdf', 'iter', 'salt', 'iv', 'ct', 'mac'}, 'not an encrypted envelope'
+          open('_site/data.json', 'w').write(blob)
+          PY
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site
