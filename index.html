@@ -1,0 +1,388 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta name="referrer" content="no-referrer">
+<meta name="theme-color" content="#f6f1e7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#14181d" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="طاقة البيت">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-180.png">
+<title>طاقة البيت</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap">
+<style>
+:root{
+  --bg:#f6f1e7;--card:#fffdf8;--ink:#1d2228;--ink2:#56606b;--ink3:#8a929b;--line:#e6dfd2;
+  --sun:#c7781a;--sun-soft:#fbecd6;--batt:#2f8a5b;--batt-soft:#dcefe3;--grid:#3d6fb0;--grid-soft:#e0e9f5;
+  --warn:#b8641a;--bad:#c23b2e;--bad-soft:#f8e1dd;--shade:rgba(194,59,46,.10);
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#14181d;--card:#1c2229;--ink:#eef1f4;--ink2:#a9b2bc;--ink3:#78828d;--line:#2c343d;
+  --sun:#f0a545;--sun-soft:#3a2c18;--batt:#5cc28b;--batt-soft:#1d3428;--grid:#7aa7e6;--grid-soft:#1e2b3d;
+  --warn:#eb9a4b;--bad:#f07a6c;--bad-soft:#3d2220;--shade:rgba(240,122,108,.13);color-scheme:dark;
+}}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 "IBM Plex Sans Arabic",system-ui,-apple-system,"Segoe UI",Tahoma,sans-serif;
+  padding-block:max(16px,env(safe-area-inset-top)) max(24px,env(safe-area-inset-bottom));
+  padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env(safe-area-inset-right))}
+main{max-width:720px;margin:0 auto;display:grid;gap:14px}
+h1,h2{margin:0;text-wrap:balance}
+h1{font-size:1.45rem;font-weight:700}
+h2{font-size:1rem;font-weight:600}
+.num{font-variant-numeric:tabular-nums}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;display:grid;gap:12px;min-width:0}
+.muted{color:var(--ink2)}
+.small{font-size:.85rem}
+header{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap}
+.badge{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:3px 10px;font-size:.82rem;font-weight:600}
+.badge.ok{background:var(--batt-soft);color:var(--batt)}
+.badge.off{background:var(--bad-soft);color:var(--bad)}
+.badge.stale{background:var(--sun-soft);color:var(--warn)}
+.dot{width:8px;height:8px;border-radius:50%;background:currentColor}
+/* battery hero */
+.hero{display:grid;gap:10px}
+.soc{display:flex;align-items:baseline;gap:4px 8px;flex-wrap:wrap}
+.soc b{font-size:3.4rem;line-height:1;font-weight:700}
+.soc span{font-size:1.4rem;color:var(--ink2)}
+.bar{position:relative;height:18px;border-radius:9px;background:var(--line);overflow:hidden}
+.bar i{position:absolute;inset-block:0;right:0;border-radius:9px;background:var(--batt);transition:width .4s}
+.bar.low i{background:var(--warn)} .bar.crit i{background:var(--bad)}
+.ticks{position:relative;height:18px;font-size:.72rem;color:var(--ink3)}
+.ticks span{position:absolute;transform:translateX(50%);white-space:nowrap}
+.status{font-weight:600}
+/* tiles */
+.tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+@media (min-width:560px){.tiles{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.tile{border-radius:12px;padding:10px 12px;display:grid;gap:2px;background:var(--bg)}
+.tile .k{font-size:.8rem;color:var(--ink2)}
+.tile .v{font-size:1.3rem;font-weight:700}
+.tile .u{font-size:.78rem;color:var(--ink3)}
+.tile.sun .v{color:var(--sun)} .tile.batt .v{color:var(--batt)} .tile.grid .v{color:var(--grid)} .tile.cut .v{color:var(--bad)}
+.temp{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.temp b{font-size:1.15rem}
+.lvl{border-radius:8px;padding:2px 8px;font-size:.82rem;font-weight:600}
+.lvl.ok{background:var(--batt-soft);color:var(--batt)} .lvl.cool{background:var(--grid-soft);color:var(--grid)}
+.lvl.warn{background:var(--sun-soft);color:var(--warn)} .lvl.bad{background:var(--bad-soft);color:var(--bad)}
+/* totals */
+.totals{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;text-align:center}
+.totals b{display:block;font-size:1.2rem}
+/* charts */
+.chart{position:relative;min-width:0}
+.chart svg{display:block;width:100%;height:auto;overflow:visible}
+.tip{position:absolute;top:0;pointer-events:none;background:var(--ink);color:var(--bg);border-radius:8px;padding:4px 8px;font-size:.78rem;white-space:nowrap;transform:translateX(-50%);opacity:0;transition:opacity .1s}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:.8rem;color:var(--ink2)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-inline-end:5px;vertical-align:-1px}
+.days{display:grid;gap:8px}
+.day{display:grid;grid-template-columns:4.6rem minmax(0,1fr);gap:8px;align-items:center;font-size:.85rem}
+.day .bars{display:grid;gap:3px}
+.day .b{height:9px;border-radius:0 4px 4px 0;min-width:2px}
+.day .vals{font-size:.75rem;color:var(--ink3)}
+table{width:100%;border-collapse:collapse;font-size:.88rem}
+td,th{padding:7px 4px;border-bottom:1px solid var(--line);text-align:right}
+th{font-weight:600;color:var(--ink2);font-size:.8rem}
+.fc{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}
+.fc div{background:var(--bg);border-radius:12px;padding:10px;display:grid;gap:2px;font-size:.85rem}
+.fc b{font-size:1.05rem}
+/* login */
+.login{max-width:380px;margin:12vh auto 0;display:grid;gap:14px}
+.login form{display:grid;gap:12px}
+input[type=password]{font:inherit;padding:12px 14px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--ink);width:100%}
+button{font:inherit;font-weight:600;padding:12px 14px;border-radius:12px;border:0;background:var(--batt);color:#fff;cursor:pointer}
+button.link{background:none;color:var(--ink2);padding:4px;font-weight:500;text-decoration:underline}
+label.chk{display:flex;gap:8px;align-items:center;font-size:.9rem;color:var(--ink2)}
+.err{color:var(--bad);font-size:.9rem;min-height:1.4em}
+footer{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;font-size:.8rem;color:var(--ink3)}
+</style>
+</head>
+<body>
+<div id="login" class="login" hidden>
+  <div><h1>طاقة البيت</h1><p class="muted">اكتب كلمة سر العائلة حتى تشوف حالة المنظومة.</p></div>
+  <form id="f" autocomplete="on">
+    <input type="text" name="username" value="family" autocomplete="username" hidden>
+    <input id="pw" type="password" autocomplete="current-password" placeholder="كلمة السر" required>
+    <label class="chk"><input id="rem" type="checkbox" checked> تذكّرني على هذا الجهاز</label>
+    <button id="go" type="submit">دخول</button>
+    <div id="err" class="err" role="alert"></div>
+  </form>
+</div>
+
+<main id="app" hidden>
+  <header>
+    <div><h1>طاقة البيت</h1><div class="muted small">آخر قراءة <span id="when" class="num">—</span></div></div>
+    <span id="state" class="badge"></span>
+  </header>
+
+  <section class="card hero" aria-label="البطارية">
+    <div class="soc"><b id="soc" class="num">—</b><span>%</span><span class="muted small" style="margin-inline-start:auto" id="kwh"></span></div>
+    <div>
+      <div id="bar" class="bar" role="meter" aria-label="شحن البطارية" aria-valuemin="0" aria-valuemax="100"><i id="fill"></i></div>
+      <div class="ticks"><span style="right:10%">10% إطفاء</span><span style="right:60%">60%</span></div>
+    </div>
+    <div id="status" class="status"></div>
+  </section>
+
+  <section class="card" aria-label="الطاقة الآن">
+    <h2>الآن</h2>
+    <div class="tiles" id="tiles"></div>
+    <div class="temp"><span>حرارة البطارية <b id="temp" class="num">—</b></span><span id="tlvl" class="lvl"></span></div>
+  </section>
+
+  <section class="card" aria-label="اليوم">
+    <h2>اليوم</h2>
+    <div class="totals" id="totals"></div>
+    <div class="chart" id="socChart"><div class="tip" id="tip"></div></div>
+    <div class="legend"><span><i style="background:var(--batt)"></i>شحن البطارية</span><span><i style="background:var(--shade);border:1px solid var(--bad)"></i>الوطنية مقطوعة</span></div>
+  </section>
+
+  <section class="card" aria-label="آخر سبعة أيام">
+    <h2>آخر سبعة أيام</h2>
+    <div class="legend"><span><i style="background:var(--sun)"></i>من الشمس</span><span><i style="background:var(--grid)"></i>من الوطنية</span></div>
+    <div class="days" id="days"></div>
+  </section>
+
+  <section class="card" aria-label="الانقطاعات">
+    <h2>انقطاعات الوطنية، آخر سبعة أيام</h2>
+    <div id="cuts" style="overflow-x:auto"></div>
+  </section>
+
+  <section class="card" aria-label="الشمس بالأيام الجاية">
+    <h2>الشمس بالأيام الجاية</h2>
+    <div class="fc" id="fc"></div>
+    <div class="muted small">تقدير من توقعات الطقس، مو قراءة.</div>
+  </section>
+
+  <footer><span>للمشاهدة فقط. يتحدّث كل ساعة.</span><button class="link" id="out" type="button">خروج من هذا الجهاز</button></footer>
+</main>
+
+<script>
+(() => {
+const KEY = 'home-energy-key';
+const $ = id => document.getElementById(id);
+const enc = new TextEncoder(), dec = new TextDecoder();
+const unb = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+const b64 = a => btoa(String.fromCharCode(...new Uint8Array(a)));
+const store = {
+  get(){ try { return JSON.parse(localStorage.getItem(KEY)) } catch { return null } },
+  set(v){ try { localStorage.setItem(KEY, JSON.stringify(v)) } catch {} },
+  del(){ try { localStorage.removeItem(KEY) } catch {} }
+};
+let session = null; // {salt, bits}
+
+async function derive(pw, box){
+  const base = await crypto.subtle.importKey('raw', enc.encode(pw), 'PBKDF2', false, ['deriveBits']);
+  const bits = await crypto.subtle.deriveBits({name:'PBKDF2', hash:'SHA-256', salt:unb(box.salt), iterations:box.iter}, base, 512);
+  return {salt: box.salt, iter: box.iter, bits: b64(bits)};
+}
+async function open(box, k){
+  if (!k || k.salt !== box.salt || k.iter !== box.iter) throw new Error('key');
+  const raw = unb(k.bits);
+  const macKey = await crypto.subtle.importKey('raw', raw.slice(32), {name:'HMAC', hash:'SHA-256'}, false, ['verify']);
+  const iv = unb(box.iv), ct = unb(box.ct), msg = new Uint8Array(iv.length + ct.length);
+  msg.set(iv); msg.set(ct, iv.length);
+  if (!await crypto.subtle.verify('HMAC', macKey, unb(box.mac), msg)) throw new Error('key');
+  const aes = await crypto.subtle.importKey('raw', raw.slice(0, 32), 'AES-CBC', false, ['decrypt']);
+  return JSON.parse(dec.decode(await crypto.subtle.decrypt({name:'AES-CBC', iv}, aes, ct)));
+}
+async function fetchBox(){
+  const r = await fetch('data.json?t=' + Date.now(), {cache:'no-store'});
+  if (!r.ok) throw new Error('net');
+  return r.json();
+}
+
+/* ---------- formatting ---------- */
+const TZ = 'Asia/Baghdad';
+const fmt = (n, d=0) => n == null || isNaN(n) ? '—' : Number(n).toLocaleString('en-US', {maximumFractionDigits:d, minimumFractionDigits:d});
+const watts = w => Math.abs(w) >= 1000 ? fmt(w/1000, 1) + ' ك.واط' : fmt(w) + ' واط';
+const dayName = d => new Date(d + 'T12:00:00+03:00').toLocaleDateString('ar-u-nu-latn', {weekday:'long', timeZone:TZ});
+const shortDate = d => { const [, m, dd] = d.split('-'); return +dd + '/' + +m; };
+const todayStr = () => new Date().toLocaleDateString('en-CA', {timeZone:TZ});
+function whenText(iso){
+  if (!iso) return '—';
+  const d = iso.slice(0, 10), t = iso.slice(11, 16);
+  return (d === todayStr() ? 'اليوم ' : shortDate(d) + ' ') + t;
+}
+const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+
+/* ---------- render ---------- */
+function render(D){
+  const N = D.now, B = D.battery;
+  $('when').textContent = whenText(D.reading || D.published);
+  const ageMin = D.reading ? (Date.now() - Date.parse(D.reading)) / 60000 : 999;
+  const st = $('state'); st.replaceChildren(el('span', 'dot'));
+  if (ageMin > 120){ st.className = 'badge stale'; st.append('القراءة قديمة، الماك ما حدّث'); }
+  else if (N.gridOff){ st.className = 'badge off'; st.append('الوطنية مقطوعة'); }
+  else { st.className = 'badge ok'; st.append('الوطنية موجودة'); }
+
+  const soc = N.soc ?? 0;
+  $('soc').textContent = fmt(soc);
+  $('kwh').textContent = fmt(soc / 100 * B.kwh, 1) + ' من ' + fmt(B.kwh, 1) + ' ك.واط ساعة';
+  $('fill').style.width = Math.max(0, Math.min(100, soc)) + '%';
+  $('bar').setAttribute('aria-valuenow', soc);
+  $('bar').className = 'bar' + (soc <= 15 ? ' crit' : soc <= 25 ? ' low' : '');
+
+  let s;
+  const usable = Math.max(0, soc - B.off) / 100 * B.kwh;
+  if (N.gridOff){
+    const kw = Math.max(N.loadW - N.solarW, 0) / 1000;
+    const hrs = kw > 0.05 ? usable / kw : null;
+    s = 'البيت يشتغل على البطارية' + (hrs != null ? '، تكفي تقريباً ' + (hrs >= 1 ? fmt(hrs, 1) + ' ساعة' : fmt(hrs * 60) + ' دقيقة') + ' على الحمل الحالي قبل الإطفاء.' : '.');
+    if (soc <= B.off + 3) s = 'البطارية قريبة من الإطفاء (10%). خففوا الأحمال.';
+  } else if (N.batteryW < -30) s = 'البطارية تنشحن بـ ' + watts(-N.batteryW) + '.';
+  else if (N.batteryW > 30) s = 'البيت ياخذ من البطارية ' + watts(N.batteryW) + '.';
+  else s = 'البطارية واقفة، لا تنشحن ولا تفرغ.';
+  $('status').textContent = s;
+
+  const tiles = $('tiles'); tiles.replaceChildren();
+  const tile = (cls, k, v, u) => { const t = el('div', 'tile ' + cls); t.append(el('span', 'k', k), el('span', 'v num', v), el('span', 'u', u)); tiles.append(t); };
+  tile('sun', 'الشمس', watts(N.solarW), 'إنتاج الألواح');
+  tile('', 'البيت', watts(N.loadW), 'استهلاك هسة');
+  if (N.gridOff) tile('cut', 'الوطنية', 'مقطوعة', '');
+  else tile('grid', 'الوطنية', watts(N.gridW), 'ناخذ منها');
+  tile('batt', 'البطارية', watts(Math.abs(N.batteryW)), N.batteryW < -30 ? 'شحن' : N.batteryW > 30 ? 'تفريغ' : 'واقفة');
+
+  const t = N.battTemp; $('temp').textContent = t == null ? '—' : fmt(t) + '°';
+  let l = '', w = '';
+  if (t != null){ if (t > 35){ l='bad'; w='عالية' } else if (t > 30){ l='warn'; w='دافية' } else if (t >= 15){ l='ok'; w='مثالية' } else if (t >= 0){ l='cool'; w='باردة' } else { l='bad'; w='تحت الصفر' } }
+  $('tlvl').className = 'lvl ' + l; $('tlvl').textContent = w;
+
+  const T = D.today, tot = $('totals'); tot.replaceChildren();
+  for (const [k, v, c] of [['من الشمس', T.solar, 'var(--sun)'], ['استهلاك البيت', T.load, 'var(--ink)'], ['من الوطنية', T.grid, 'var(--grid)']]){
+    const d = el('div'); const b = el('b', 'num', fmt(v, 1)); b.style.color = c;
+    d.append(b, el('span', 'muted small', k + ' ك.واط ساعة')); tot.append(d);
+  }
+  socChart(D.frames, B.off);
+  days(D.days);
+  cuts(D.outages);
+  forecast(D.forecast.filter(f => f.d > todayStr()).slice(0, 3));
+}
+
+function socChart(F, off){
+  const box = $('socChart'), tip = $('tip');
+  box.querySelector('svg')?.remove();
+  const W = 600, H = 170, L = 30, R = 8, Tp = 10, Bt = 22;
+  const x = t => { const [h, m] = t.split(':'); return L + (W - L - R) * ((+h * 60 + +m) / 1440); };
+  const y = v => Tp + (H - Tp - Bt) * (1 - v / 100);
+  const ns = 'http://www.w3.org/2000/svg', svg = document.createElementNS(ns, 'svg');
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`); svg.setAttribute('role', 'img'); svg.setAttribute('aria-label', 'شحن البطارية خلال اليوم');
+  const add = (tag, at) => { const e = document.createElementNS(ns, tag); for (const k in at) e.setAttribute(k, at[k]); svg.append(e); return e; };
+  // outage bands
+  let s0 = null;
+  F.forEach((f, i) => {
+    if (f.off && s0 == null) s0 = f.t;
+    if ((!f.off || i === F.length - 1) && s0 != null){
+      const end = f.off ? f.t : F[i].t;
+      add('rect', {x: x(s0), y: Tp, width: Math.max(x(end) - x(s0), 2), height: H - Tp - Bt, fill: 'var(--shade)'});
+      s0 = null;
+    }
+  });
+  for (const v of [0, 50, 100]){
+    add('line', {x1: L, x2: W - R, y1: y(v), y2: y(v), stroke: 'var(--line)', 'stroke-width': 1});
+    const tx = add('text', {x: L - 6, y: y(v) + 4, 'text-anchor': 'end', 'font-size': 11, fill: 'var(--ink3)'}); tx.textContent = v;
+  }
+  add('line', {x1: L, x2: W - R, y1: y(off), y2: y(off), stroke: 'var(--bad)', 'stroke-width': 1, 'stroke-dasharray': '4 4'});
+  for (const h of [0, 6, 12, 18, 24]){
+    const tx = add('text', {x: L + (W - L - R) * h / 24, y: H - 5, 'text-anchor': 'middle', 'font-size': 11, fill: 'var(--ink3)'});
+    tx.textContent = String(h).padStart(2, '0') + ':00';
+  }
+  const pts = F.filter(f => f.soc != null);
+  if (pts.length){
+    add('path', {d: 'M' + pts.map(f => x(f.t).toFixed(1) + ' ' + y(f.soc).toFixed(1)).join('L'), fill: 'none', stroke: 'var(--batt)', 'stroke-width': 2, 'stroke-linejoin': 'round', 'stroke-linecap': 'round'});
+    const last = pts[pts.length - 1];
+    add('circle', {cx: x(last.t), cy: y(last.soc), r: 4, fill: 'var(--batt)', stroke: 'var(--card)', 'stroke-width': 2});
+  }
+  const cross = add('line', {y1: Tp, y2: H - Bt, stroke: 'var(--ink3)', 'stroke-width': 1, opacity: 0});
+  svg.style.direction = 'ltr';
+  box.prepend(svg);
+  const move = e => {
+    if (!pts.length) return;
+    const r = svg.getBoundingClientRect(), px = (e.clientX - r.left) / r.width * W;
+    let best = pts[0]; for (const f of pts) if (Math.abs(x(f.t) - px) < Math.abs(x(best.t) - px)) best = f;
+    cross.setAttribute('x1', x(best.t)); cross.setAttribute('x2', x(best.t)); cross.setAttribute('opacity', 1);
+    tip.textContent = best.t + ' · ' + best.soc + '% · شمس ' + watts(best.solar) + (best.off ? ' · مقطوعة' : '');
+    tip.style.left = (x(best.t) / W * r.width) + 'px'; tip.style.opacity = 1;
+  };
+  svg.addEventListener('pointermove', move); svg.addEventListener('pointerdown', move);
+  svg.addEventListener('pointerleave', () => { tip.style.opacity = 0; cross.setAttribute('opacity', 0); });
+}
+
+function days(Ds){
+  const box = $('days'); box.replaceChildren();
+  const max = Math.max(1, ...Ds.map(d => Math.max(d.solar || 0, d.grid || 0)));
+  for (const d of Ds){
+    const row = el('div', 'day');
+    const name = el('div'); name.append(el('div', '', d.partial ? 'اليوم' : dayName(d.d)), el('div', 'muted small num', shortDate(d.d)));
+    const bars = el('div', 'bars');
+    for (const [v, c] of [[d.solar, 'var(--sun)'], [d.grid, 'var(--grid)']]){ const b = el('div', 'b'); b.style.width = (100 * (v || 0) / max) + '%'; b.style.background = c; bars.append(b); }
+    bars.append(el('div', 'vals', 'شمس ' + fmt(d.solar, 1) + ' · وطنية ' + fmt(d.grid, 1) + ' · استهلاك ' + fmt(d.load, 1) + ' ك.واط ساعة'));
+    row.append(name, bars); box.append(row);
+  }
+}
+
+function cuts(C){
+  const box = $('cuts'); box.replaceChildren();
+  if (!C.length){ box.append(el('div', 'muted', 'ماكو انقطاعات مسجّلة.')); return; }
+  const tb = el('table'); const head = el('tr');
+  for (const h of ['اليوم', 'من', 'إلى', 'المدة', 'البطارية']) head.append(el('th', '', h));
+  tb.append(head);
+  for (const c of C.slice().reverse()){
+    const tr = el('tr'), d = c.start.slice(0, 10);
+    const mins = c.minutes, dur = mins >= 60 ? Math.floor(mins / 60) + ' س ' + (mins % 60) + ' د' : mins + ' د';
+    tr.append(el('td', '', d === todayStr() ? 'اليوم' : dayName(d)), el('td', 'num', c.start.slice(11)),
+      el('td', 'num', c.ongoing ? 'مستمر' : c.end.slice(11)), el('td', 'num', dur), el('td', 'num', c.socStart + '% ← ' + c.socEnd + '%'));
+    tb.append(tr);
+  }
+  box.append(tb);
+}
+
+function forecast(Fc){
+  const box = $('fc'); box.replaceChildren();
+  for (const f of Fc){
+    const c = el('div');
+    c.append(el('span', 'muted', f.d === todayStr() ? 'اليوم' : dayName(f.d)), el('b', 'num', 'نحو ' + fmt(f.pv, 0) + ' ك.واط ساعة'),
+      el('span', 'muted small num', 'شمس ' + fmt(f.sunH, 1) + ' ساعة · غيوم ' + fmt(f.cloud) + '%'),
+      el('span', 'muted small num', 'حرارة الجو ' + fmt(f.tmin) + ' إلى ' + fmt(f.tmax) + ' درجة'));
+    box.append(c);
+  }
+}
+
+/* ---------- flow ---------- */
+function showLogin(msg){ $('app').hidden = true; $('login').hidden = false; $('err').textContent = msg || ''; $('pw').focus(); }
+async function refresh(){
+  let box;
+  try { box = await fetchBox(); } catch { if (!session) showLogin('ما گدرنا نجيب البيانات. تأكد من الإنترنت.'); return; }
+  if (!session){ showLogin(); return; }
+  try { render(await open(box, session)); $('login').hidden = true; $('app').hidden = false; }
+  catch { session = null; store.del(); showLogin('كلمة السر تغيّرت، اكتب الجديدة.'); }
+}
+$('f').addEventListener('submit', async e => {
+  e.preventDefault();
+  const pw = $('pw').value; if (!pw) return;
+  $('go').disabled = true; $('go').textContent = 'لحظة…'; $('err').textContent = '';
+  try {
+    const box = await fetchBox();
+    const k = await derive(pw, box);
+    const D = await open(box, k).catch(() => null);
+    if (!D){ $('err').textContent = 'كلمة السر غلط.'; return; }
+    session = k; if ($('rem').checked) store.set(k);
+    $('pw').value = ''; render(D); $('login').hidden = true; $('app').hidden = false;
+  } catch { $('err').textContent = 'ما گدرنا نجيب البيانات. تأكد من الإنترنت.'; }
+  finally { $('go').disabled = false; $('go').textContent = 'دخول'; }
+});
+$('out').addEventListener('click', () => { session = null; store.del(); showLogin(); });
+document.addEventListener('visibilitychange', () => { if (!document.hidden && session) refresh(); });
+setInterval(() => { if (!document.hidden && session) refresh(); }, 5 * 60 * 1000);
+session = store.get();
+refresh();
+})();
+</script>
+</body>
+</html>
