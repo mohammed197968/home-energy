@@ -1,0 +1,39 @@
+# Deploys the page with the encrypted data.json handed in by the owner's Mac each hour.
+# data.json is never committed, so this public repo keeps no history of the readings.
+name: publish
+on:
+  workflow_dispatch:
+    inputs:
+      blob:
+        description: Encrypted data.json (password protected, from the owner's Mac)
+        required: true
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: true
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Assemble site
+        env:
+          BLOB: ${{ inputs.blob }}
+        run: |
+          mkdir _site
+          cp index.html manifest.webmanifest icon.svg icon-180.png icon-512.png robots.txt .nojekyll _site/
+          printf '%s' "$BLOB" > _site/data.json
+          python3 -c "import json;b=json.load(open('_site/data.json'));assert set(b)=={'v','kdf','iter','salt','iv','ct','mac'}, 'not an encrypted envelope'"
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+          retention-days: 1
+      - id: deployment
+        uses: actions/deploy-pages@v4

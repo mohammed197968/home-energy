@@ -177,21 +177,28 @@ const store = {
 };
 let session = null; // {salt, bits}
 
-// Same rule as normalize() in seal.py: Arabic and Persian digits count as Western ones.
-const norm = pw => pw.normalize('NFC').replace(/[٠-٩]/g, d => d.charCodeAt(0) - 0x660).replace(/[۰-۹]/g, d => d.charCodeAt(0) - 0x6F0).trim();
+// Same rules as normalize() and keys() in seal.py (format v2).
+const norm = pw => pw.normalize('NFC')
+  .replace(/[٠-٩]/g, d => d.charCodeAt(0) - 0x660).replace(/[۰-۹]/g, d => d.charCodeAt(0) - 0x6F0)
+  .replace(/ی/g, 'ي').replace(/ک/g, 'ك')
+  .replace(/^[ \t\r\n]+|[ \t\r\n]+$/g, '');
 async function derive(pw, box){
   const base = await crypto.subtle.importKey('raw', enc.encode(norm(pw)), 'PBKDF2', false, ['deriveBits']);
-  const bits = await crypto.subtle.deriveBits({name:'PBKDF2', hash:'SHA-256', salt:unb(box.salt), iterations:box.iter}, base, 512);
-  return {salt: box.salt, iter: box.iter, bits: b64(bits)};
+  const bits = await crypto.subtle.deriveBits({name:'PBKDF2', hash:'SHA-256', salt:unb(box.salt), iterations:box.iter}, base, 256);
+  return {v: box.v, salt: box.salt, iter: box.iter, bits: b64(bits)};
+}
+async function subkey(master, label){
+  const k = await crypto.subtle.importKey('raw', master, {name:'HMAC', hash:'SHA-256'}, false, ['sign']);
+  return new Uint8Array(await crypto.subtle.sign('HMAC', k, enc.encode(label)));
 }
 async function open(box, k){
-  if (!k || k.salt !== box.salt || k.iter !== box.iter) throw new Error('key');
-  const raw = unb(k.bits);
-  const macKey = await crypto.subtle.importKey('raw', raw.slice(32), {name:'HMAC', hash:'SHA-256'}, false, ['verify']);
+  if (box.v !== 2 || !k || k.v !== box.v || k.salt !== box.salt || k.iter !== box.iter) throw new Error('key');
+  const master = unb(k.bits);
+  const macKey = await crypto.subtle.importKey('raw', await subkey(master, 'mac'), {name:'HMAC', hash:'SHA-256'}, false, ['verify']);
   const iv = unb(box.iv), ct = unb(box.ct), msg = new Uint8Array(iv.length + ct.length);
   msg.set(iv); msg.set(ct, iv.length);
   if (!await crypto.subtle.verify('HMAC', macKey, unb(box.mac), msg)) throw new Error('key');
-  const aes = await crypto.subtle.importKey('raw', raw.slice(0, 32), 'AES-CBC', false, ['decrypt']);
+  const aes = await crypto.subtle.importKey('raw', await subkey(master, 'enc'), 'AES-CBC', false, ['decrypt']);
   return JSON.parse(dec.decode(await crypto.subtle.decrypt({name:'AES-CBC', iv}, aes, ct)));
 }
 async function fetchBox(){
@@ -264,7 +271,7 @@ function render(D){
   socChart(D.frames, B.off);
   days(D.days);
   cuts(D.outages);
-  forecast(D.forecast.filter(f => f.d > todayStr()).slice(0, 3));
+  forecast(D.forecast.filter(f => f.d > todayStr()).slice(0, 3), D.forecastReused);
 }
 
 function socChart(F, off){
@@ -345,8 +352,10 @@ function cuts(C){
   box.append(tb);
 }
 
-function forecast(Fc){
+function forecast(Fc, reused){
   const box = $('fc'); box.replaceChildren();
+  if (!Fc.length){ box.append(el('div', 'muted', 'توقعات الطقس مو متوفرة هسة.')); return; }
+  if (reused) box.append(el('div', 'muted small', 'من آخر توقع وصلنا، التحديث ما نجح هالمرة.'));
   for (const f of Fc){
     const c = el('div');
     c.append(el('span', 'muted', f.d === todayStr() ? 'اليوم' : dayName(f.d)), el('b', 'num', 'نحو ' + fmt(f.pv, 0) + ' ك.واط ساعة'),
@@ -362,8 +371,13 @@ async function refresh(){
   let box;
   try { box = await fetchBox(); } catch { if (!session) showLogin('ما گدرنا نجيب البيانات. تأكد من الإنترنت.'); return; }
   if (!session){ showLogin(); return; }
-  try { render(await open(box, session)); $('login').hidden = true; $('app').hidden = false; }
-  catch { session = null; store.del(); showLogin('كلمة السر تغيّرت، اكتب الجديدة.'); }
+  const D = await open(box, session).catch(() => null);
+  if (!D){ session = null; store.del(); showLogin('كلمة السر تغيّرت، اكتب الجديدة.'); return; }
+  show(D);
+}
+function show(D){
+  $('login').hidden = true; $('app').hidden = false;
+  try { render(D); } catch (e) { $('status').textContent = 'صار خلل بعرض البيانات. حدّث الصفحة بعد شوية.'; console.error(e); }
 }
 $('f').addEventListener('submit', async e => {
   e.preventDefault();
@@ -375,7 +389,7 @@ $('f').addEventListener('submit', async e => {
     const D = await open(box, k).catch(() => null);
     if (!D){ $('err').textContent = 'كلمة السر غلط.'; return; }
     session = k; if ($('rem').checked) store.set(k);
-    $('pw').value = ''; render(D); $('login').hidden = true; $('app').hidden = false;
+    $('pw').value = ''; show(D);
   } catch { $('err').textContent = 'ما گدرنا نجيب البيانات. تأكد من الإنترنت.'; }
   finally { $('go').disabled = false; $('go').textContent = 'دخول'; }
 });
